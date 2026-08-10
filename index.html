@@ -593,7 +593,8 @@ function onDataLoaded(response) {
 
       docs: (row[12] || []).map(d => ({
         name: d[0],
-        uploaded: d[1]
+        uploaded: d[1],
+        canceled: d[2]
       })),
 
       draftCount: row[13],
@@ -824,9 +825,11 @@ function renderTable(dataArray) {
     let docsString = "No documents required";
     if (val.docs.length > 0) {
       docsString = val.docs.map(d => {
+        const canceledStatus = String(d.canceled).trim().toLowerCase();
+        const isCanceled = (canceledStatus === '1' || canceledStatus === 'true');
         const uploadStatus = String(d.uploaded).trim().toLowerCase();
         const isMissing = (uploadStatus === '0' || uploadStatus === 'false' || uploadStatus === 'null' || uploadStatus === '');
-        const color = isMissing ? '#DC2626' : '#1E293B'; 
+        const color = isCanceled ? '#0284C7' : (isMissing ? '#DC2626' : '#1E293B');
         return `<span style="color:${color}; font-weight:500;">&bull; ${escapeAttr(d.name)}</span>`;
       }).join('<br>');
     }

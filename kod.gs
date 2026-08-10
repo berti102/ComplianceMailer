@@ -768,9 +768,10 @@ function xlsxColumnName(columnIndex) {
   return result;
 }
 
-// Matches the black/red colors used for uploaded/missing documents in the email table.
+// Matches the black/red/blue colors used for uploaded/missing/canceled documents in the email table.
 const XLSX_DOC_UPLOADED_COLOR = 'FF2C3E50';
 const XLSX_DOC_MISSING_COLOR = 'FFE74C3C';
+const XLSX_DOC_CANCELED_COLOR = 'FF0284C7';
 
 function buildDocumentsRichRuns(docs, emptyDocText) {
   if (!docs || docs.length === 0) {
@@ -778,6 +779,18 @@ function buildDocumentsRichRuns(docs, emptyDocText) {
   }
 
   return docs.map((document, index) => {
+    const canceledValue = String(
+      document.canceled === null || document.canceled === undefined
+        ? ''
+        : document.canceled
+    )
+      .trim()
+      .toLowerCase();
+
+    const isCanceled =
+      canceledValue === '1' ||
+      canceledValue === 'true';
+
     const uploadedValue = String(
       document.uploaded === null || document.uploaded === undefined
         ? ''
@@ -792,9 +805,11 @@ function buildDocumentsRichRuns(docs, emptyDocText) {
       uploadedValue === 'null' ||
       uploadedValue === '';
 
-    const color = isMissing
-      ? XLSX_DOC_MISSING_COLOR
-      : XLSX_DOC_UPLOADED_COLOR;
+    const color = isCanceled
+      ? XLSX_DOC_CANCELED_COLOR
+      : isMissing
+        ? XLSX_DOC_MISSING_COLOR
+        : XLSX_DOC_UPLOADED_COLOR;
 
     const name = String(
       document.name === null || document.name === undefined
@@ -1087,6 +1102,7 @@ function refreshBigQueryData() {
         a.Status_of_Action,
         b.doc_libtrad AS Document_Name,
         CAST(b.top_uploaded_document AS STRING) AS doc_status,
+        CAST(b.Top_Canceled_Document AS STRING) AS doc_canceled_status,
         c.emails,
         a.category_of_action,
         a.Product_conformity_status,
@@ -1206,22 +1222,23 @@ function getAllData() {
             row[7] ? row[7].substring(0, 10) : '', // 6: Create date
             row[8],             // 7: Action type
             row[9],             // 8: Status
-            row[12],            // 9: Supplier emails
-            row[13] || '-',     // 10: Category
-            row[14] || '-',     // 11: Conformity
+            row[13],            // 9: Supplier emails
+            row[14] || '-',     // 10: Category
+            row[15] || '-',     // 11: Conformity
             [],                 // 12: Documents array
             history[0],         // 13: Draft count
             history[1],         // 14: Last language
             history[2],         // 15: Last date
-            row[15] || '',      // 16: PM email
-            row[16] || ''       // 17: Purchasing specialist email
+            row[16] || '',      // 16: PM email
+            row[17] || ''       // 17: Purchasing specialist email
           ]);
         }
 
         if (row[10] !== '') {
           groupedMap.get(intervNum)[12].push([
             row[10],
-            row[11]
+            row[11],
+            row[12]
           ]);
         }
       });
@@ -1450,16 +1467,29 @@ const xlsxThreshold =
         if (val.docs.length > 0) {
           docsString = val.docs
             .map(document => {
+              const canceledStatus =
+                String(document.canceled)
+                  .trim()
+                  .toLowerCase();
+
+              const isCanceled =
+                canceledStatus === '1' ||
+                canceledStatus === 'true';
+
               const uploadStatus =
                 String(document.uploaded)
                   .trim()
                   .toLowerCase();
 
-              const color =
+              const isMissing =
                 uploadStatus === '0' ||
                 uploadStatus === 'false' ||
                 uploadStatus === 'null' ||
-                uploadStatus === ''
+                uploadStatus === '';
+
+              const color = isCanceled
+                ? '#0284C7'
+                : isMissing
                   ? '#E74C3C'
                   : '#2C3E50';
 
