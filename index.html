@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --primary-teal: #12A398;
+  --primary-teal-dark: #0B7A71;
+  --dark-slate: #3D5363;
+  --dark-slate-dark: #2C3E50;
+  --light-bg: #F0F4F8;
+  --border-color: #E2E8F0;
+  --text-dark: #1E293B;
+  --alert-bg: #F0FDFA;
+  --bulk-bg: #FEF2F2;
+  --header-bg: #F8FAFC;
+}
+
+body { font-family: 'Inter', sans-serif; background-color: var(--light-bg); color: var(--text-dark); margin: 0; padding: 20px; display: grid; grid-template-columns: 320px 1fr; gap: 20px;
+height: 100vh; box-sizing: border-box; overflow: hidden; align-items: stretch; transition: padding-top 0.3s ease; }
+
+.card { background: white; border-radius: 12px; padding: 25px; box-shadow: 0 10px 25px rgba(0,0,0,0.03); position: relative; height: 100%; box-sizing: border-box;
+display: flex; flex-direction: column; overflow: hidden; }
+.card::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 5px; background: linear-gradient(90deg, var(--primary-teal) 0%, var(--primary-teal-dark) 100%);
+border-top-left-radius: 12px; border-top-right-radius: 12px; }
+.card-left { overflow-y: auto; }
+.card-right { padding-bottom: 0; min-width: 0; }
+.card-right::before { background: linear-gradient(90deg, var(--dark-slate) 0%, var(--dark-slate-dark) 100%); }
+
+#tableWrapper { overflow-y: auto; overflow-x: auto; flex-grow: 1; margin-top: 10px; padding-bottom: 0; }
+.header-flex { display: flex; justify-content: space-between; align-items: flex-start; flex-shrink: 0; }
+h2 { margin-top: 0; font-weight: 700; font-size: 1.3rem; color: var(--text-dark); letter-spacing: -0.5px; }
+.subtitle { font-size: 0.75rem; color: #64748B; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+label { display: block; font-weight: 600; font-size: 0.75rem; margin-bottom: 6px; margin-top: 15px; text-transform: uppercase; color: var(--dark-slate); letter-spacing: 0.5px;}
+select, input, textarea { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; font-family: 'Inter', sans-serif; font-size: 0.85rem;
+box-sizing: border-box; outline: none; transition: border 0.3s ease; }
+select:focus, input:focus, textarea:focus { border-color: var(--primary-teal); }
+textarea { resize: vertical; min-height: 80px; }
+select { cursor: pointer; }
+select:disabled { background-color: #F8FAFC; color: #94A3B8; cursor: not-allowed; }
+
+#supplierContactBox { display: none; margin-top: 20px; padding: 12px; background-color: var(--alert-bg); border-left: 4px solid var(--primary-teal); border-radius: 6px; transition: all 0.3s ease; }
+.bulk-mode { background-color: var(--bulk-bg) !important; border-left-color: #DC2626 !important; }
+
+.contact-title { font-size: 0.7rem; color: var(--primary-teal-dark); font-weight: 700; text-transform: uppercase; margin-bottom: 5px; }
+.title-bulk { color: #DC2626; }
+.contact-email { font-size: 0.8rem; color: var(--text-dark); font-weight: 600; word-break: break-all; margin-bottom: 10px; }
+
+.btn-primary { width: 100%; background-color: var(--primary-teal); color: white; border: none; padding: 12px; border-radius: 6px; font-weight: 600; font-size: 0.85rem; cursor: pointer;
+transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); margin-top: 8px; }
+.btn-primary:hover:not(:disabled) { background-color: var(--primary-teal-dark); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(18, 163, 152, 0.25); }
+.btn-primary:disabled { background-color: #CBD5E1; cursor: not-allowed; transform: none; box-shadow: none; }
+
+.btn-bulk { width: 100%; background-color: transparent; color: #DC2626; border: 1px solid #FECACA; padding: 8px; border-radius: 6px; font-weight: 600; font-size: 0.75rem;
+cursor: pointer; transition: all 0.2s ease; margin-top: 8px; }
+.btn-bulk:hover:not(:disabled) { background-color: #FEF2F2; border-color: #F87171; }
+.btn-bulk:disabled { color: #94A3B8; border-color: #E2E8F0; cursor: not-allowed; }
+
+.btn-ghost { background-color: transparent; color: var(--dark-slate); border: 1px solid transparent; padding: 6px 10px; font-size: 0.8rem; font-weight: 600; border-radius: 6px;
+cursor: pointer; transition: all 0.2s ease; font-family: 'Inter', sans-serif; display: none; }
+.btn-ghost:hover { background-color: #F1F5F9; border-color: #E2E8F0; color: var(--text-dark); }
+
+.modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%;
+background-color: rgba(15, 23, 42, 0.6); align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+.modal-content { background-color: white; border-radius: 12px; width: 900px; max-width: 90%; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; }
+.btn-secondary { background-color: var(--dark-slate); }
+.btn-secondary:hover:not(:disabled) { background-color: var(--dark-slate-dark); }
+
+.ms-container { position: relative; display: inline-block; font-size: 0.75rem; font-family: 'Inter', sans-serif; }
+.ms-header { background: white; border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 6px; cursor: pointer; display: flex; justify-content: space-between;
+align-items: center; gap: 10px; min-width: 160px; color: var(--text-dark); font-weight: 600; transition: border-color 0.2s; }
+.ms-header:hover { border-color: var(--primary-teal); }
+.ms-dropdown { display: none; position: absolute; top: 100%; left: 0; background: white; border: 1px solid var(--border-color); border-radius: 6px;
+box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-top: 4px; z-index: 100; min-width: 220px; max-width: 320px; max-height: 250px; overflow-y: auto; overflow-x: hidden;
+padding: 5px 0; }
+.ms-dropdown.show { display: block; }
+.ms-option { padding: 4px 10px; display: flex; align-items: flex-start; gap: 8px; cursor: pointer; transition: background 0.2s; color: var(--text-dark); line-height: 1.15;
+font-size: 0.7rem; }
+.ms-option:hover { background: var(--light-bg); }
+.ms-option input { margin: 2px 0 0 0; cursor: pointer; flex-shrink: 0; width: auto; padding: 0; }
+.ms-option span { white-space: normal; word-break: break-word; display: block; width: 100%; }
+
+.admin-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; }
+.admin-row:last-child { border-bottom: none; }
+.btn-danger-small { background-color: transparent; color: #DC2626; border: 1px solid #FECACA; border-radius: 4px; padding: 4px 8px; font-size: 0.75rem; cursor: pointer;
+transition: 0.2s; }
+.btn-danger-small:hover { background-color: #FEF2F2; }
+
+@keyframes shimmer { 0% { background-position: -1000px 0; } 100% { background-position: 1000px 0; } }
+.skeleton { background: #f6f7f8; background-image: linear-gradient(90deg, #F1F5F9 0px, #E2E8F0 40px, #F1F5F9 80px); background-size: 1000px 100%; animation: shimmer 2s infinite linear;
+border-radius: 6px; }
+.skel-header { height: 35px; margin-bottom: 10px; width: 100%; border-radius: 6px; }
+.skel-row { height: 40px; margin-bottom: 8px; width: 100%; }
+
+table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 0; position: relative; min-width: max-content; }
+th { background-color: var(--header-bg); color: var(--dark-slate); font-weight: 600; text-transform: uppercase; font-size: 0.6rem; letter-spacing: 0.5px; padding: 6px 8px; text-align: left;
+position: sticky; top: 0; z-index: 10; border-bottom: 2px solid var(--border-color); border-top: 1px solid var(--border-color); white-space: nowrap; }
+td { padding: 4px 8px; text-align: left; border-bottom: 1px solid var(--border-color); vertical-align: middle; line-height: 1.2; font-size: 0.65rem; }
+.col-nowrap { white-space: nowrap; }
+.col-min-150 { min-width: 120px; word-wrap: break-word; }
+.col-action-type { max-width: 110px; white-space: normal; word-wrap: break-word; }
+.col-docs { max-width: 180px; white-space: normal; word-wrap: break-word; }
+.col-center { text-align: center; }
+.val-code { font-weight: 600; color: var(--text-dark); }
+.badge { background-color: var(--primary-teal); color: white; padding: 2px 5px; border-radius: 4px; font-weight: 700; font-size: 0.65rem; }
+.badge-empty { background-color: #E2E8F0; color: #64748B; padding: 2px 5px; border-radius: 4px; font-size: 0.65rem; font-weight: 600; }
+.status-pill { display: inline-block; padding: 2px 6px; border-radius: 8px; font-size: 0.6rem; font-weight: 600; text-transform: uppercase; text-align: center; white-space: normal;
+word-wrap: break-word; min-width: 80px; letter-spacing: 0.3px; }
+.status-blue { background-color: #F0F9FF; color: #0284C7; border: 1px solid #BAE6FD; }
+.status-orange { background-color: #FFF7ED; color: #C2410C; border: 1px solid #FFEDD5; }
+.status-red { background-color: #FEF2F2; color: #DC2626; border: 1px solid #FECACA; }
+.status-default { background-color: #F8FAFC; color: #64748B; border: 1px solid #E2E8F0; }
+
+.pagination-bar { display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; background: white; border-top: 1px solid var(--border-color); flex-shrink: 0;
+border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;}
+.page-btn { background: white; border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.75rem; font-weight: 600;
+color: var(--dark-slate); transition: all 0.2s; }
+.page-btn:hover:not(:disabled) { border-color: var(--primary-teal); color: var(--primary-teal); }
+.page-btn:disabled { color: #CBD5E1; cursor: not-allowed; background: #F8FAFC; }
+.page-info { font-size: 0.75rem; color: #64748B; font-weight: 500; }
+
+#diagnosticBanner { display: none; background: #DC2626; color: white; text-align: center; padding: 8px; font-weight: 600; font-size: 0.8rem; position: fixed; top: 0;
+left: 0; width: 100%; z-index: 1000; box-shadow: 0 4px 10px rgba(220, 38, 38, 0.3); }
+</style>
+</head>
+<body>
+
+<div id="diagnosticBanner">
+  🕵️ DIAGNOSTIC MODE ACTIVE: Simulated BU: <span id="diagBuDisplay"></span> | Simulated Role: <span id="diagRoleDisplay"></span>
+  <button id="exitDiagBtn" onclick="exitDiagnosticMode()" style="margin-left: 20px; background: white; color: #DC2626; border: none; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.75rem;">EXIT MODE</button>
+</div>
+
+<div id="settingsModal" class="modal">
+  <div class="modal-content">
+    <div style="padding: 30px 30px 10px 30px; flex-shrink: 0;">
+      <h2 style="margin-bottom: 5px;">Admin Configuration</h2>
+      <div class="subtitle" style="margin-bottom: 0;">Manage Draft Templates & Permissions</div>
+    </div>
+    <div style="flex-grow: 1; overflow-y: auto; padding: 10px 30px 20px 30px;">
+      <div style="display: flex; gap: 30px;">
+        <div style="flex: 2;" id="templatesContainer">
+          <h3 style="color:var(--dark-slate); font-size: 0.95rem; border-bottom: 2px solid var(--primary-teal); padding-bottom: 5px;">Loading Templates...</h3>
+        </div>
+        <div style="flex: 1; border-left: 1px solid var(--border-color); padding-left: 20px;">
+          <h3 style="color:var(--dark-slate); font-size: 0.95rem; border-bottom: 2px solid var(--primary-teal); padding-bottom: 5px;">Admin Rights</h3>
+          <label style="margin-top: 15px;">Add New Admin (Email)</label>
+          <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+            <input type="text" id="newAdminEmail" placeholder="user@leroymerlin.pl" style="flex-grow: 1;">
+            <button class="btn-primary" style="margin-top: 0; width: auto; padding: 12px 20px;" onclick="addAdminUser()">ADD</button>
+          </div>
+          <div style="background-color: var(--header-bg); border-radius: 8px; border: 1px solid var(--border-color); overflow: hidden;">
+            <div style="background-color: var(--border-color); padding: 8px 12px; font-weight: 600; font-size: 0.75rem; color: var(--dark-slate); text-transform: uppercase;">Current Admins</div>
+            <div id="adminListContainer" style="max-height: 150px; overflow-y: auto;">
+              <div style="padding: 10px; text-align: center; color: #94A3B8; font-size: 0.8rem;">Loading admins...</div>
+            </div>
+          </div>
+          <div id="diagnosticPanel" style="display:none; margin-top: 20px; background: #FFFBEB; padding: 15px; border-radius: 8px; border: 1px solid #FDE68A;">
+            <h3 style="color:#D97706; font-size: 0.85rem; margin-top:0; margin-bottom:10px;">🕵️ Diagnostic Impersonation</h3>
+            <div style="display: flex; gap: 10px;">
+              <select id="diagBU" style="flex: 1;">
+                <option value="PL">🇵🇱 Poland (PL)</option>
+                <option value="IT">🇮🇹 Italy (IT)</option>
+                <option value="ES">🇪🇸 Spain (ES)</option>
+                <option value="PT">🇵🇹 Portugal (PT)</option>
+              </select>
+              <select id="diagRole" style="flex: 1;">
+                <option value="user">Regular User</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <button id="enterDiagBtn" class="btn-primary" style="background-color: #D97706; margin-top: 10px;" onclick="startDiagnosticMode()">ENTER MODE</button>
+          </div>
+          <div style="margin-top: 20px;">
+            <h3 style="color:var(--dark-slate); font-size: 0.95rem; border-bottom: 2px solid var(--primary-teal); padding-bottom: 5px;">System Maintenance</h3>
+            <button class="btn-bulk" id="resetLogsBtn" style="width: 100%; margin-top: 10px;" onclick="resetCounters()">⚠️ RESET DRAFT COUNTERS</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions" style="flex-shrink: 0; padding: 20px 30px 30px 30px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 15px; background: white; z-index: 10;">
+      <button class="btn-primary btn-secondary" style="margin-top:0; width: auto; padding: 12px 25px;" onclick="closeSettings()">Cancel</button>
+      <button class="btn-primary" style="margin-top:0; width: auto; padding: 12px 35px;" onclick="saveSettings()" id="saveBtn">Save Settings</button>
+    </div>
+  </div>
+</div>
+
+<div class="card card-left">
+  <div class="header-flex" style="align-items: center; margin-bottom: 20px;">
+    <img src="https://i.imgur.com/h6ZneRU.jpeg" alt="Compliance Mailer" style="width: 150px; height: auto; display: block;">
+    <button id="configBtn" class="btn-ghost" onclick="openSettings()">⚙️ Config</button>
+  </div>
+
+  <div style="flex-grow:1;">
+    <label>Select Business Unit</label>
+    <select id="buFilter" onchange="onFilterChange('BU')" disabled><option value="ALL">Loading...</option></select>
+    
+    <label>Select Department</label>
+    <div class="ms-container" id="ms-container-dept" style="width: 100%; display: block; margin-bottom: 15px;">
+      <div class="ms-header" onclick="toggleDropdown('dept')" style="width: 100%; box-sizing: border-box;">
+        <span id="ms-label-dept">Dept: Loading...</span><span style="font-size:0.6rem; color:#94A3B8;"> ▼ </span>
+      </div>
+      <div class="ms-dropdown" id="ms-drop-dept" style="width: 100%; box-sizing: border-box;"></div>
+    </div>
+
+    <label style="margin-top:0;">Select Supplier</label>
+    <div class="ms-container" id="ms-container-supp" style="width: 100%; display: block; margin-bottom: 15px;">
+      <div class="ms-header" onclick="toggleDropdown('supp')" style="width: 100%; box-sizing: border-box;">
+        <span id="ms-label-supp">Supplier: Loading...</span><span style="font-size:0.6rem; color:#94A3B8;"> ▼ </span>
+      </div>
+      <div class="ms-dropdown" id="ms-drop-supp" style="width: 100%; box-sizing: border-box;"></div>
+    </div>
+
+    <div id="supplierContactBox">
+      <div id="boxTitle" class="contact-title">Supplier Contact(s)</div>
+      <div id="supplierEmails" class="contact-email"></div>
+      <div style="border-top: 1px solid rgba(0,0,0,0.1); margin-top: 10px; padding-top: 8px;">
+        <label style="margin-top:0;">Draft Language</label>
+
+<select id="draftLang" style="margin-bottom: 10px;">
+  <option value="LOCAL">Loading...</option>
+</select>
+
+
+<label style="margin-top:10px;">
+  XLSX Attachment Threshold
+</label>
+
+<div style="
+  display:flex;
+  gap:8px;
+  align-items:center;
+  margin-bottom:4px;
+">
+  <input
+    type="number"
+    id="xlsxThreshold"
+    min="1"
+    max="500"
+    step="1"
+    value="20"
+    style="flex:1;"
+  >
+
+  <button
+    class="btn-primary"
+    id="saveXlsxThresholdBtn"
+    onclick="saveXlsxThreshold()"
+    style="
+      width:auto;
+      margin-top:0;
+      padding:10px 14px;
+    "
+  >
+    SAVE
+  </button>
+</div>
+
+<div style="
+  font-size:0.65rem;
+  color:#64748B;
+  line-height:1.3;
+  margin-bottom:12px;
+">
+  An XLSX attachment is created when the number of actions
+  is greater than this value. This setting is saved only for you.
+</div>
+
+
+<button
+  class="btn-primary"
+  id="createDraftBtn"
+  onclick="createDraft(false)"
+  style="margin-top:0;"
+>
+  ✉️ CREATE DRAFT
+</button>
+        <button class="btn-bulk" id="createBulkBtn" onclick="createDraft(true)">🚀 BULK CREATE DRAFTS</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card card-right">
+  <div class="header-flex">
+    <h2 style="margin-bottom: 0;">Pending Supplier Actions</h2>
+  </div>
+
+  <div style="display: flex; gap: 15px; margin-top: 15px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color); align-items: center; flex-wrap: wrap;">
+    <span style="font-size: 0.7rem; font-weight: 700; color: var(--dark-slate); text-transform: uppercase;">Table Filters:</span>
+    
+    <div class="ms-container" id="ms-container-type">
+      <div class="ms-header" onclick="toggleDropdown('type')">
+        <span id="ms-label-type">Action Type: All</span><span style="font-size:0.6rem; color:#94A3B8;"> ▼ </span>
+      </div>
+      <div class="ms-dropdown" id="ms-drop-type"></div>
+    </div>
+
+    <div class="ms-container" id="ms-container-category">
+      <div class="ms-header" onclick="toggleDropdown('category')">
+        <span id="ms-label-category">Category: All</span><span style="font-size:0.6rem; color:#94A3B8;"> ▼ </span>
+      </div>
+      <div class="ms-dropdown" id="ms-drop-category"></div>
+    </div>
+
+    <div class="ms-container" id="ms-container-conformity">
+      <div class="ms-header" onclick="toggleDropdown('conformity')">
+        <span id="ms-label-conformity">Conformity: All</span><span style="font-size:0.6rem; color:#94A3B8;"> ▼ </span>
+      </div>
+      <div class="ms-dropdown" id="ms-drop-conformity"></div>
+    </div>
+
+    <div style="margin-left: auto; display: flex; align-items: center; background: var(--header-bg); padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border-color);">
+      <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 0.7rem; font-weight: 700; color: var(--primary-teal-dark); cursor: pointer; text-transform: uppercase;">
+        <input type="checkbox" id="hideTodayDrafts" onchange="updateView()" style="width: auto; padding: 0; margin: 0; cursor: pointer;">
+        Hide Drafts Sent Today
+      </label>
+    </div>
+  </div>
+
+  <div id="tableWrapper">
+    <div id="tableContainer">
+      <div style="padding: 10px;">
+        <div class="skeleton skel-header"></div>
+        <div class="skeleton skel-row"></div>
+        <div class="skeleton skel-row"></div>
+        <div class="skeleton skel-row"></div>
+        <div class="skeleton skel-row"></div>
+        <div class="skeleton skel-row" style="width: 80%;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pagination-bar">
+    <button class="page-btn" id="btnPrevPage" onclick="prevPage()" disabled> ◄ Previous 100 </button>
+    <div class="page-info" id="pageInfo">Showing 0 of 0 records</div>
+    <button class="page-btn" id="btnNextPage" onclick="nextPage()" disabled> Next 100 ► </button>
+  </div>
+</div>
+
+<script>
+let allData = [];
+let currentViewData = [];
+let isBulkMode = false;
+let msFilters = { dept: [], supp: [], type: [], category: [], conformity: [] };
+let currentLanguages = []; 
+let currentPage = 1;
+const rowsPerPage = 100;
+
+document.addEventListener('DOMContentLoaded', () => {
+  google.script.run.withSuccessHandler(initUser).withFailureHandler(err => printCrash("initUser", err)).getUserRole();
+  google.script.run.withSuccessHandler(populateSettingsForm).withFailureHandler(err => printCrash("loadSettings", err)).loadSettings();
+  google.script.run.withSuccessHandler(onDataLoaded).withFailureHandler(err => printCrash("getAllData", err)).getAllData();
+  google.script.run
+  .withSuccessHandler(loadXlsxThreshold)
+  .withFailureHandler(err => {
+    console.error(
+      'Could not load XLSX threshold:',
+      err
+    );
+  })
+  .getUserXlsxThreshold();
+
+  document.addEventListener('click', function(event) {
+    if (!event.target.closest('.ms-container')) {
+      document.querySelectorAll('.ms-dropdown').forEach(d => d.classList.remove('show'));
+    }
+  });
+});
+
+function printCrash(module, error) {
+  document.getElementById('tableContainer').innerHTML = `
+    <div style="background:#FEF2F2; color:#DC2626; border:1px solid #FECACA; border-radius:8px; padding:20px; font-size:0.85rem; margin:10px;">
+      <b>Frontend Crash detected in [${module}]</b><br><br>
+      <i>Error details:</i> ${error.message || error}
+    </div>`;
+}
+
+function initUser(roleInfo) {
+  try {
+    if (roleInfo.isMaster) { document.getElementById('diagnosticPanel').style.display = 'block'; }
+    if (roleInfo.isSpoofing) {
+      document.body.style.paddingTop = '50px';
+      document.getElementById('diagnosticBanner').style.display = 'block';
+      document.getElementById('diagBuDisplay').innerText = roleInfo.spoofTarget || roleInfo.bu;
+      document.getElementById('diagRoleDisplay').innerText = roleInfo.isAdmin ? 'Admin' : 'Regular User';
+    } else {
+      document.body.style.paddingTop = '20px';
+      document.getElementById('diagnosticBanner').style.display = 'none';
+    }
+    if (roleInfo.isAdmin) {
+      document.getElementById('configBtn').style.display = 'block';
+      renderAdminList(roleInfo.adminList);
+    } else {
+      document.getElementById('configBtn').style.display = 'none';
+    }
+  } catch (err) { printCrash("initUser logic", err); }
+}
+
+function startDiagnosticMode() {
+  const bu = document.getElementById('diagBU').value;
+  const role = document.getElementById('diagRole').value;
+  const btn = document.getElementById('enterDiagBtn');
+  btn.innerText = "SWITCHING... PLEASE WAIT";
+  btn.disabled = true;
+
+  google.script.run
+    .withSuccessHandler(() => {
+      closeSettings();
+      document.getElementById('tableContainer').innerHTML = '<div style="text-align: center; padding: 40px; color: #94A3B8; font-weight: 600;">Loading Diagnostic Environment...</div>';
+      google.script.run.withSuccessHandler(initUser).getUserRole();
+      google.script.run.withSuccessHandler(populateSettingsForm).loadSettings();
+      google.script.run.withSuccessHandler(onDataLoaded).getAllData();
+    })
+    .withFailureHandler((e) => { alert("Error: " + e); btn.innerText = "ENTER MODE"; btn.disabled = false; })
+    .setDiagnosticMode(bu, role);
+}
+
+function exitDiagnosticMode() {
+  const btn = document.getElementById('exitDiagBtn');
+  btn.innerText = "EXITING...";
+  btn.disabled = true;
+
+  google.script.run
+    .withSuccessHandler(() => {
+      document.getElementById('diagnosticBanner').style.display = 'none';
+      document.body.style.paddingTop = '20px';
+      document.getElementById('tableContainer').innerHTML = '<div style="text-align: center; padding: 40px; color: #94A3B8; font-weight: 600;">Restoring Original Environment...</div>';
+      google.script.run.withSuccessHandler(initUser).getUserRole();
+      google.script.run.withSuccessHandler(populateSettingsForm).loadSettings();
+      google.script.run.withSuccessHandler(onDataLoaded).getAllData();
+    })
+    .clearDiagnosticMode();
+}
+
+function renderAdminList(admins) {
+  const container = document.getElementById('adminListContainer');
+  let html = `<div class="admin-row"><span style="font-weight:600; color:var(--primary-teal-dark);">bcieszczyk@leroymerlin.pl <span title="Master Admin" style="font-size:0.7rem;">👑</span></span><span style="font-size:0.7rem; color:#94A3B8;">Master</span></div>`;
+  admins.forEach(email => { if (email !== 'bcieszczyk@leroymerlin.pl') html += `<div class="admin-row"><span>${email}</span><button class="btn-danger-small" onclick="removeAdminUser('${email}')">Remove</button></div>`; });
+  container.innerHTML = html;
+}
+
+function addAdminUser() {
+  const emailInput = document.getElementById('newAdminEmail'); const email = emailInput.value;
+  if (!email || !email.includes('@')) return alert("Please enter a valid email address.");
+  emailInput.disabled = true;
+  google.script.run.withSuccessHandler((updatedAdmins) => { emailInput.value = ''; emailInput.disabled = false; renderAdminList(updatedAdmins); }).withFailureHandler(err => { alert("Error: " + err); emailInput.disabled = false; }).addAdmin(email);
+}
+
+function removeAdminUser(email) {
+  if (!confirm(`Are you sure you want to revoke admin rights for ${email}?`)) return;
+  google.script.run.withSuccessHandler(renderAdminList).withFailureHandler(err => alert("Error: " + err)).removeAdmin(email);
+}
+
+function resetCounters() {
+  if (!confirm("WARNING: This will permanently reset all draft counts and last draft dates to zero for ALL suppliers. This cannot be undone.\n\nAre you sure you want to proceed?")) return;
+  const btn = document.getElementById('resetLogsBtn'); const originalText = btn.innerText; btn.innerText = "Resetting..."; btn.disabled = true;
+  google.script.run.withSuccessHandler(() => {
+    btn.innerText = "✔️ COUNTERS RESET"; 
+    allData.forEach(d => { d.draftCount = 0; d.lastLang = '-'; d.lastDate = '-'; }); updateView();
+    setTimeout(() => { btn.innerText = originalText; btn.disabled = false; }, 3000);
+  }).withFailureHandler(err => { alert("Error resetting logs: " + err); btn.innerText = originalText; btn.disabled = false; }).resetLogs();
+}
+
+function openSettings() { document.getElementById('settingsModal').style.display = 'flex'; }
+function closeSettings() { document.getElementById('settingsModal').style.display = 'none'; }
+
+function loadXlsxThreshold(threshold) {
+  const input =
+    document.getElementById('xlsxThreshold');
+
+  if (!input) return;
+
+  input.value =
+    Number(threshold) || 20;
+}
+
+
+function saveXlsxThreshold() {
+  const input =
+    document.getElementById('xlsxThreshold');
+
+  const button =
+    document.getElementById(
+      'saveXlsxThresholdBtn'
+    );
+
+  const threshold =
+    Number(input.value);
+
+  if (
+    !Number.isInteger(threshold) ||
+    threshold < 1 ||
+    threshold > 500
+  ) {
+    alert(
+      'Enter a whole number between 1 and 500.'
+    );
+
+    return;
+  }
+
+  const originalText =
+    button.innerText;
+
+  button.disabled = true;
+  button.innerText = 'SAVING...';
+
+  google.script.run
+    .withSuccessHandler(savedThreshold => {
+      input.value = savedThreshold;
+
+      button.innerText = '✔ SAVED';
+
+      setTimeout(() => {
+        button.innerText = originalText;
+        button.disabled = false;
+      }, 1500);
+    })
+    .withFailureHandler(error => {
+      alert(
+        'Could not save the XLSX threshold: ' +
+        (
+          error.message ||
+          error
+        )
+      );
+
+      button.innerText = originalText;
+      button.disabled = false;
+    })
+    .saveUserXlsxThreshold(
+      threshold
+    );
+}
+
+function escapeAttr(str) { return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+
+function populateSettingsForm(s) {
+  try {
+    if (!s) return;
+    currentLanguages = s.languages.map(l => l.id);
+    let container = document.getElementById('templatesContainer');
+    let html = '';
+    
+    s.languages.forEach((lang, index) => {
+      let marginTop = index === 0 ? '0' : '25px';
+      html += `
+        <h3 style="color:var(--dark-slate); font-size: 0.95rem; border-bottom: 2px solid var(--primary-teal); padding-bottom: 5px; margin-top: ${marginTop};">${lang.flag} ${lang.name}</h3>
+        <label>Email Subject</label><input type="text" id="subj_${lang.id}" value="${escapeAttr(s.templates[lang.id].subj)}">
+        <label>Email Body</label><textarea id="body_${lang.id}" style="min-height: 100px;">${escapeAttr(s.templates[lang.id].body)}</textarea>
+      `;
+    });
+    container.innerHTML = html;
+
+    let draftSelect = document.getElementById('draftLang');
+    let draftHtml = '';
+    s.languages.forEach(lang => { draftHtml += `<option value="${lang.id}">${lang.flag} ${lang.name}</option>`; });
+    draftSelect.innerHTML = draftHtml;
+  } catch (err) { printCrash("populateSettingsForm", err); }
+}
+
+function saveSettings() {
+  const btn = document.getElementById('saveBtn'); btn.innerText = "Saving..."; btn.disabled = true;
+  const templates = {};
+  currentLanguages.forEach(id => {
+    templates[id] = { subj: document.getElementById(`subj_${id}`).value, body: document.getElementById(`body_${id}`).value };
+  });
+  google.script.run.withSuccessHandler(() => { 
+    btn.innerText = "Save Settings"; btn.disabled = false; closeSettings(); 
+  }).withFailureHandler(err => { alert("Error: " + err); btn.innerText = "Save Settings"; btn.disabled = false; }).saveSettings(templates);
+}
+
+function onDataLoaded(response) {
+  try {
+    if (!response || !response.success) return printCrash("PageData", response.error);
+    
+    let parsedData = JSON.parse(response.dataStr);
+    
+    allData = parsedData.map(row => ({
+      interv: row[0],
+      bu: row[1],
+      dept: row[2],
+      code: row[3],
+      name: row[4],
+      supp: row[5],
+      date: row[6],
+      type: row[7],
+      status: row[8],
+      contactEmails: row[9],
+      category: row[10],
+      conformity: row[11],
+
+      docs: (row[12] || []).map(d => ({
+        name: d[0],
+        uploaded: d[1]
+      })),
+
+      draftCount: row[13],
+      lastLang: row[14],
+      lastDate: row[15],
+
+      pmMailAddress: row[16] || "",
+      specMailAddress: row[17] || ""
+    }));
+    
+    const buSelect = document.getElementById('buFilter');
+    if (buSelect) {
+      buSelect.disabled = false;
+      let buOptions = [...new Set(allData.map(d => d.bu))].sort();
+      buSelect.innerHTML = `<option value="ALL">-- All Business Units --</option>`;
+      buOptions.forEach(val => buSelect.innerHTML += `<option value="${escapeAttr(val)}">${escapeAttr(val)}</option>`);
+      buSelect.value = "ALL";
+    }
+    
+    buildMultiSelect('dept', [...new Set(allData.map(d => d.dept))].sort());
+    buildMultiSelect('supp', [...new Set(allData.map(d => d.supp))].sort());
+    buildMultiSelect('type', [...new Set(allData.map(d => d.type))].sort());
+    buildMultiSelect('category', [...new Set(allData.map(d => d.category))].sort());
+    buildMultiSelect('conformity', [...new Set(allData.map(d => d.conformity))].sort());
+
+    updateView();
+  } catch(err) {
+    printCrash("onDataLoaded Mapping", err);
+  }
+}
+
+function buildMultiSelect(key, values) {
+  const drop = document.getElementById(`ms-drop-${key}`);
+  if (!drop) return;
+  // ZERO-CHECKED EQUALS ALL MECHANIC: Initialize with everything empty/unchecked
+  let html = `<label class="ms-option" style="font-weight:600;"><input type="checkbox" id="ms-all-${key}" onchange="toggleAllMS('${key}')"> Select All</label><div style="border-bottom:1px solid #E2E8F0; margin: 4px 0;"></div>`;
+  values.forEach(val => {
+    let displayVal = val === "" ? "-" : escapeAttr(val);
+    html += `<label class="ms-option"><input type="checkbox" class="ms-chk-${key}" value="${escapeAttr(val)}" onchange="updateMS('${key}', true)"> <span>${displayVal}</span></label>`;
+  });
+  drop.innerHTML = html;
+  msFilters[key] = []; 
+  updateMS(key, false);
+}
+
+function toggleDropdown(key) {
+  document.querySelectorAll('.ms-dropdown').forEach(d => { if (d.id !== `ms-drop-${key}`) d.classList.remove('show'); });
+  document.getElementById(`ms-drop-${key}`).classList.toggle('show');
+}
+
+function toggleAllMS(key) {
+  const isChecked = document.getElementById(`ms-all-${key}`).checked;
+  document.querySelectorAll(`.ms-chk-${key}`).forEach(chk => chk.checked = isChecked);
+  updateMS(key, true);
+}
+
+function updateMS(key, triggerViewUpdate) {
+  const checkboxes = document.querySelectorAll(`.ms-chk-${key}`);
+  const allCheckbox = document.getElementById(`ms-all-${key}`);
+  if (!allCheckbox) return;
+  
+  let selected = []; let allChecked = true;
+  checkboxes.forEach(chk => { if(chk.checked) selected.push(chk.value); else allChecked = false; });
+  allCheckbox.checked = allChecked; 
+  msFilters[key] = selected;
+  
+  const label = document.getElementById(`ms-label-${key}`);
+  let titleName = 'Filter';
+  if (key === 'conformity') titleName = 'Conformity';
+  else if (key === 'type') titleName = 'Action Type';
+  else if (key === 'category') titleName = 'Category';
+  else if (key === 'dept') titleName = 'Dept';
+  else if (key === 'supp') titleName = 'Supplier';
+  
+  // ZERO-CHECKED EQUALS ALL MECHANIC
+  if (selected.length === checkboxes.length || selected.length === 0) label.innerText = `${titleName}: All`;
+  else label.innerText = `${titleName}: ${selected.length} Sel.`;
+  
+  if (triggerViewUpdate) {
+    // DEPARTMENT CASCADING MECHANIC: Instantly rebuild Suppliers list if Dept changes
+    if (key === 'dept') {
+      const selectedBu = document.getElementById('buFilter') ? document.getElementById('buFilter').value : "ALL";
+      let baseData = selectedBu === "ALL" ? allData : allData.filter(d => d.bu === selectedBu);
+
+      if (selected.length > 0 && selected.length !== checkboxes.length) {
+        baseData = baseData.filter(d => selected.includes(d.dept));
+      }
+
+      let newSuppliers = [...new Set(baseData.map(d => d.supp))].sort();
+      buildMultiSelect('supp', newSuppliers);
+    }
+    updateView(); 
+  }
+}
+
+function onFilterChange(levelChanged) {
+  if (levelChanged === 'BU') {
+    const selectedBu = document.getElementById('buFilter').value;
+    let baseData = selectedBu === "ALL" ? allData : allData.filter(d => d.bu === selectedBu);
+    buildMultiSelect('dept', [...new Set(baseData.map(d => d.dept))].sort());
+    buildMultiSelect('supp', [...new Set(baseData.map(d => d.supp))].sort());
+  }
+  updateView();
+}
+
+function updateView() {
+  try {
+    const selectedBu = document.getElementById('buFilter') ? document.getElementById('buFilter').value : "ALL";
+
+    currentViewData = allData;
+    if (selectedBu !== "ALL") currentViewData = currentViewData.filter(d => d.bu === selectedBu);
+
+    const filterKeys = ['dept', 'supp', 'type', 'category', 'conformity'];
+    filterKeys.forEach(key => {
+       const totalOptions = document.querySelectorAll(`.ms-chk-${key}`).length;
+       // Only filter the data if at least 1 box is checked, but not all of them
+       if (totalOptions > 0 && msFilters[key].length > 0 && msFilters[key].length !== totalOptions) {
+          currentViewData = currentViewData.filter(d => msFilters[key].includes(d[key]));
+       }
+    });
+
+    const hideDraftsChk = document.getElementById('hideTodayDrafts');
+    if (hideDraftsChk && hideDraftsChk.checked) {
+      let today = new Date();
+      today.setMinutes(today.getMinutes() - today.getTimezoneOffset());
+      let todayStr = today.toISOString().substring(0,10);
+      currentViewData = currentViewData.filter(d => d.lastDate !== todayStr);
+    }
+
+    const contactBox = document.getElementById('supplierContactBox');
+    const boxTitle = document.getElementById('boxTitle');
+    const emailDisplay = document.getElementById('supplierEmails');
+    const singleBtn = document.getElementById('createDraftBtn');
+    const bulkBtn = document.getElementById('createBulkBtn');
+
+    if (currentViewData.length === 0) {
+      contactBox.style.display = 'none';
+    } else {
+      let uniqueSuppsCount = new Set(currentViewData.map(d => d.supp)).size;
+      contactBox.style.display = 'block';
+      
+      if (uniqueSuppsCount > 1) {
+        isBulkMode = true;
+        contactBox.classList.add('bulk-mode'); boxTitle.classList.add('title-bulk');
+        boxTitle.innerText = `BULK MODE: ${uniqueSuppsCount} SUPPLIERS`;
+        emailDisplay.innerHTML = `Ready to generate <b>${uniqueSuppsCount}</b> separate email drafts simultaneously. <br><span style="font-size:0.7rem; font-weight:400;">(Applies to entire filtered table)</span>`;
+        singleBtn.disabled = true; singleBtn.innerText = "✉️ SELECT 1 SUPPLIER FIRST";
+        bulkBtn.style.display = 'block'; bulkBtn.disabled = false; bulkBtn.innerText = `🚀 BULK CREATE (${uniqueSuppsCount} DRAFTS)`;
+      } else {
+        isBulkMode = false;
+        const record = currentViewData[0];
+        contactBox.classList.remove('bulk-mode'); boxTitle.classList.remove('title-bulk');
+        boxTitle.innerText = `Supplier Contact(s)`;
+        emailDisplay.innerHTML = (record && record.contactEmails) ? record.contactEmails : "<i>No email registered</i>";
+        singleBtn.disabled = false; singleBtn.innerText = "✉️ CREATE DRAFT";
+        bulkBtn.style.display = 'none'; bulkBtn.disabled = true;
+      }
+    }
+
+    currentPage = 1;
+    renderPage();
+  } catch (err) { printCrash("updateView", err); }
+}
+
+function renderPage() {
+  const totalRecords = currentViewData.length;
+  const totalPages = Math.ceil(totalRecords / rowsPerPage) || 1;
+  
+  if (currentPage > totalPages) currentPage = totalPages;
+  if (currentPage < 1) currentPage = 1;
+
+  const startIdx = (currentPage - 1) * rowsPerPage;
+  const endIdx = startIdx + rowsPerPage;
+  const pageData = currentViewData.slice(startIdx, endIdx);
+
+  renderTable(pageData);
+
+  const displayEnd = Math.min(endIdx, totalRecords);
+  const displayStart = totalRecords === 0 ? 0 : startIdx + 1;
+  document.getElementById('pageInfo').innerText = `Showing ${displayStart} - ${displayEnd} of ${totalRecords} records (Page ${currentPage}/${totalPages})`;
+
+  document.getElementById('btnPrevPage').disabled = currentPage === 1;
+  document.getElementById('btnNextPage').disabled = currentPage === totalPages;
+}
+
+function nextPage() { currentPage++; renderPage(); document.getElementById('tableWrapper').scrollTop = 0; }
+function prevPage() { currentPage--; renderPage(); document.getElementById('tableWrapper').scrollTop = 0; }
+
+function createDraft(isBulk) {
+  let uniqueSuppsCount = new Set(currentViewData.map(d => d.supp)).size;
+  if (!isBulk && uniqueSuppsCount > 1) return;
+
+  if (isBulk && !confirm(`CAUTION: You are about to generate ${uniqueSuppsCount} drafts simultaneously based on your current filters.\n\nAre you sure you want to proceed?`)) {
+    return;
+  }
+
+  const lang = document.getElementById('draftLang').value;
+  const targetBtn = isBulk ? document.getElementById('createBulkBtn') : document.getElementById('createDraftBtn');
+  targetBtn.innerText = "Generating... (Please wait)";
+  document.getElementById('createDraftBtn').disabled = true;
+  document.getElementById('createBulkBtn').disabled = true;
+  
+  google.script.run
+    .withSuccessHandler((response) => {
+      targetBtn.innerText = `✔️ ${response.draftsCreated} DRAFTS CREATED`;
+      setTimeout(() => { updateView(); }, 3000);
+      response.updatedInterventions.forEach(inv => {
+        let record = allData.find(d => String(d.interv) === inv);
+        if (record) { record.draftCount = Number(record.draftCount) + 1; record.lastLang = response.lang; record.lastDate = response.date; }
+      });
+      renderPage();
+    })
+    .withFailureHandler((err) => { alert("Error creating drafts: " + err); updateView(); })
+    .generateDrafts(lang, currentViewData);
+}
+
+function renderTable(dataArray) {
+  const container = document.getElementById('tableContainer');
+  if (dataArray.length === 0) { container.innerHTML = '<div style="text-align: center; padding: 40px; color: #94A3B8; font-style: italic;">No data found for these filters.</div>'; 
+    return; }
+
+  let html = '<table><thead><tr>';
+  const headers = ['Create date', 'Product code', 'Product name', 'Drafts', 'Last Draft', 'Supplier name', 'Action type', 'Action status', 'Required Documents', 'Category of action', 'Product Conformity Status', 'Action Number'];
+  headers.forEach(header => html += `<th class="${header.includes('Draft') ? 'col-center' : ''}">${header}</th>`);
+  html += '</tr></thead><tbody>';
+
+  dataArray.forEach(val => {
+    let docsString = "No documents required";
+    if (val.docs.length > 0) {
+      docsString = val.docs.map(d => {
+        const uploadStatus = String(d.uploaded).trim().toLowerCase();
+        const isMissing = (uploadStatus === '0' || uploadStatus === 'false' || uploadStatus === 'null' || uploadStatus === '');
+        const color = isMissing ? '#DC2626' : '#1E293B'; 
+        return `<span style="color:${color}; font-weight:500;">&bull; ${escapeAttr(d.name)}</span>`;
+      }).join('<br>');
+    }
+
+    let countBadge = val.draftCount > 0 ? `<span class="badge">${val.draftCount}</span>` : `<span class="badge-empty">0</span>`;
+    let lastDraftStr = val.draftCount > 0 ? `<span style="font-weight: 500;">${val.lastDate}</span><br><span style="font-size:0.6rem; color:#94A3B8; font-weight:600;">(${val.lastLang})</span>` : `-`;
+
+    let statusText = String(val.status).toLowerCase();
+    let statusClass = 'status-default';
+    if (statusText.includes('waiting supplier')) statusClass = 'status-blue';
+    else if (statusText.includes('in progress supplier')) statusClass = 'status-orange';
+    else if (statusText.includes('late') || statusText.includes('red')) statusClass = 'status-red';
+    let statusPillHtml = `<span class="status-pill ${statusClass}">${val.status}</span>`;
+
+    html += `<tr>
+      <td class="col-nowrap" style="color: #64748B;">${val.date}</td>
+      <td class="col-nowrap val-code">${val.code}</td>
+      <td class="col-min-150" style="font-weight: 500;">${val.name}</td>
+      <td class="col-center">${countBadge}</td>
+      <td class="col-center col-nowrap">${lastDraftStr}</td>
+      <td class="col-min-150" style="font-weight: 500;">${val.supp}</td>
+      <td class="col-action-type" style="color: #64748B;">${val.type}</td>
+      <td class="col-center">${statusPillHtml}</td>
+      <td class="col-docs">${docsString}</td>
+      <td class="col-min-150" style="color: #64748B;">${val.category === "" ? "-" : val.category}</td>
+      <td class="col-min-150" style="color: #64748B;">${val.conformity === "" ? "-" : val.conformity}</td>
+      <td class="col-nowrap" style="color:#94A3B8;">${val.interv}</td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+</script>
+</body>
+</html>
