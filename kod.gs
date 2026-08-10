@@ -768,68 +768,100 @@ function xlsxColumnName(columnIndex) {
   return result;
 }
 
+// Matches the black/red colors used for uploaded/missing documents in the email table.
+const XLSX_DOC_UPLOADED_COLOR = 'FF2C3E50';
+const XLSX_DOC_MISSING_COLOR = 'FFE74C3C';
+
+function buildDocumentsRichRuns(docs, emptyDocText) {
+  if (!docs || docs.length === 0) {
+    return [{ text: emptyDocText, color: null }];
+  }
+
+  return docs.map((document, index) => {
+    const uploadedValue = String(
+      document.uploaded === null || document.uploaded === undefined
+        ? ''
+        : document.uploaded
+    )
+      .trim()
+      .toLowerCase();
+
+    const isMissing =
+      uploadedValue === '0' ||
+      uploadedValue === 'false' ||
+      uploadedValue === 'null' ||
+      uploadedValue === '';
+
+    const color = isMissing
+      ? XLSX_DOC_MISSING_COLOR
+      : XLSX_DOC_UPLOADED_COLOR;
+
+    const name = String(
+      document.name === null || document.name === undefined
+        ? ''
+        : document.name
+    );
+
+    return {
+      text: (index === 0 ? '' : '\n') + name,
+      color: color
+    };
+  });
+}
+
+function xlsxRichTextRunXml(run) {
+  const colorXml = run.color ? `<color rgb="${run.color}"/>` : '';
+
+  return (
+    '<r><rPr><sz val="11"/>' +
+    colorXml +
+    '<rFont val="Arial"/></rPr>' +
+    '<t xml:space="preserve">' +
+    xlsxEscapeXml(run.text) +
+    '</t></r>'
+  );
+}
+
 function createActionsXlsxAttachment(
   supplierName,
   rows,
   headers,
   emptyDocText
 ) {
-  const exportRows = [headers];
+  const docsColumnIndex = headers.length - 1;
+  const totalRows = rows.length + 1;
 
-  rows.forEach(val => {
-    let documentsText = emptyDocText;
+  const headerCellsXml = headers
+    .map((cellValue, columnIndex) => {
+      const cellReference = xlsxColumnName(columnIndex) + 1;
 
-    if (val.docs && val.docs.length > 0) {
-      documentsText = val.docs
-        .map(document => {
-          const uploadedValue = String(
-            document.uploaded === null || document.uploaded === undefined
-              ? ''
-              : document.uploaded
-          )
-            .trim()
-            .toLowerCase();
+      return (
+        `<c r="${cellReference}" t="inlineStr" s="1">` +
+        '<is><t xml:space="preserve">' +
+        xlsxEscapeXml(cellValue) +
+        '</t></is></c>'
+      );
+    })
+    .join('');
 
-          const isMissing =
-            uploadedValue === '0' ||
-            uploadedValue === 'false' ||
-            uploadedValue === 'null' ||
-            uploadedValue === '';
+  const dataRowsXml = rows
+    .map((val, rowIndex) => {
+      const excelRowNumber = rowIndex + 2;
 
-          const statusLabel = isMissing ? 'MISSING' : 'UPLOADED';
-
-          return `${statusLabel}: ${String(
-            document.name === null || document.name === undefined
-              ? ''
-              : document.name
-          )}`;
-        })
-        .join('\n');
-    }
-
-    exportRows.push([
-      val.code,
-      val.name,
-      val.supp,
-      val.date,
-      val.type,
-      val.status,
-      documentsText
-    ]);
-  });
-
-  const worksheetRowsXml = exportRows
-    .map((row, rowIndex) => {
-      const excelRowNumber = rowIndex + 1;
-      const styleIndex = rowIndex === 0 ? 1 : 0;
-
-      const cellsXml = row
+      const plainCellsXml = [
+        val.code,
+        val.name,
+        val.supp,
+        val.date,
+        val.type,
+        val.status
+      ]
         .map((cellValue, columnIndex) => {
           const cellReference =
             xlsxColumnName(columnIndex) + excelRowNumber;
 
           return (
-            `<c r="${cellReference}" t="inlineStr" s="${styleIndex}">` +
+            `<c r="${cellReference}" t="inlineStr" s="0">` +
             '<is><t xml:space="preserve">' +
             xlsxEscapeXml(cellValue) +
             '</t></is></c>'
@@ -837,12 +869,24 @@ function createActionsXlsxAttachment(
         })
         .join('');
 
-      return `<row r="${excelRowNumber}">${cellsXml}</row>`;
+      const docsRuns = buildDocumentsRichRuns(val.docs, emptyDocText);
+      const docsRunsXml = docsRuns.map(xlsxRichTextRunXml).join('');
+      const docsCellReference =
+        xlsxColumnName(docsColumnIndex) + excelRowNumber;
+
+      const docsCellXml =
+        `<c r="${docsCellReference}" t="inlineStr" s="0">` +
+        `<is>${docsRunsXml}</is></c>`;
+
+      return `<row r="${excelRowNumber}">${plainCellsXml}${docsCellXml}</row>`;
     })
     .join('');
 
+  const worksheetRowsXml =
+    `<row r="1">${headerCellsXml}</row>` + dataRowsXml;
+
   const lastColumn = xlsxColumnName(headers.length - 1);
-  const lastCell = lastColumn + exportRows.length;
+  const lastCell = lastColumn + totalRows;
 
   const contentTypesXml =
     '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
